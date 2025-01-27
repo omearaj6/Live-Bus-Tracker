@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import DCUMap from './DCUMap';
 import './App.css';
 import Popup from './Popup';
-import Clock from './Clock'; // Import the Clock component
+import Clock from './Clock'; 
 
 function App() {
   const [showPopup, setShowPopup] = useState(false);
@@ -24,7 +24,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Live Bus Tracker</h1>
-        <Clock /> {/* Add the Clock here */}
+        <Clock />
       </header>
       <main className="App-content">
         <div className="content-wrapper">
