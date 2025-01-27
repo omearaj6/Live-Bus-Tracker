@@ -9,7 +9,7 @@ const Clock = () => {
       setTime(new Date());
     }, 1000);
 
-    return () => clearInterval(timer); // Cleanup interval on component unmount
+    return () => clearInterval(timer);
   }, []);
 
   return <div className="clock">{time.toLocaleTimeString()}</div>;
