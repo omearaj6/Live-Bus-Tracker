@@ -1,10 +1,13 @@
 import React from 'react';
 import './Popup.css';
 
-const Popup = ({ onClose, onBusHere }) => {
+const Popup = ({ onClose }) => {
+  const handleYesClick = () => {
+    onClose('yes');
+  };
+
   const handleNoClick = () => {
-    onBusHere();
-    onClose();
+    onClose('no');
   };
 
   return (
@@ -12,7 +15,7 @@ const Popup = ({ onClose, onBusHere }) => {
       <div className="popup-container">
         <h2>Has your bus arrived yet?</h2>
         <div className="popup-buttons">
-          <button className="popup-button" onClick={onClose}>
+          <button className="popup-button" onClick={handleYesClick}>
             Yes
           </button>
           <button className="popup-button" onClick={handleNoClick}>
