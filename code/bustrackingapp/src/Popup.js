@@ -1,30 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './Popup.css';
 
-const Popup = ({ onClose }) => {
-  const [showBusButton, setShowBusButton] = useState(false);
-
+const Popup = ({ onClose, onBusHere }) => {
   const handleNoClick = () => {
-    setShowBusButton(true);
+    onBusHere();
+    onClose();
   };
 
   return (
-    <>
-      {!showBusButton && (
-        <div className="popup-overlay">
-          <div className="popup-container">
-            <h2>Has your bus arrived yet?</h2>
-            <div className="popup-buttons">
-              <button className="popup-button" onClick={onClose}>Yes</button>
-              <button className="popup-button" onClick={handleNoClick}>No</button>
-            </div>
-          </div>
+    <div className="popup-overlay">
+      <div className="popup-container">
+        <h2>Has your bus arrived yet?</h2>
+        <div className="popup-buttons">
+          <button className="popup-button" onClick={onClose}>
+            Yes
+          </button>
+          <button className="popup-button" onClick={handleNoClick}>
+            No
+          </button>
         </div>
-      )}
-      {showBusButton && (
-        <button className="bus-here-button">My bus is here</button>
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 

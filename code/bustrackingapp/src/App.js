@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import DCUMap from './DCUMap';
 import './App.css';
 import Popup from './Popup';
+import Clock from './Clock'; // Import the Clock component
 
 function App() {
   const [showPopup, setShowPopup] = useState(false);
+  const [showBusHereButton, setShowBusHereButton] = useState(false);
 
   const handlePopupOpen = () => {
     setShowPopup(true);
@@ -14,10 +16,15 @@ function App() {
     setShowPopup(false);
   };
 
+  const handleBusHereButton = () => {
+    setShowBusHereButton(true);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Live Bus Tracker</h1>
+        <Clock /> {/* Add the Clock here */}
       </header>
       <main className="App-content">
         <div className="content-wrapper">
@@ -30,11 +37,18 @@ function App() {
             <div className="bus-item">Bus 1</div>
             <div className="bus-item">Bus 2</div>
             <div className="bus-item">Bus 3</div>
-            <button className="button" onClick={handlePopupOpen}>Has your bus arrived?</button>
+            <button className="button" onClick={handlePopupOpen}>
+              Has your bus arrived?
+            </button>
+            {showBusHereButton && (
+              <button className="button bus-here-button">My bus is here</button>
+            )}
           </section>
         </div>
       </main>
-      {showPopup && <Popup onClose={handlePopupClose} />}
+      {showPopup && (
+        <Popup onClose={handlePopupClose} onBusHere={handleBusHereButton} />
+      )}
     </div>
   );
 }
