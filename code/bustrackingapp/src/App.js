@@ -13,6 +13,8 @@ function App() {
   const [adjustedStops, setAdjustedStops] = useState(null);
   const [timeDifference, setTimeDifference] = useState(null);
 
+
+  // This is just dummy code for testing, will not be here when project is final
   const busStops = {
     Bus1: [
       { stop: 'Stop 1A', time: '10:30 AM' },
@@ -23,7 +25,7 @@ function App() {
       { stop: 'Stop 2A', time: '11:15 AM' },
       { stop: 'Stop 2B', time: '11:30 AM' },
       { stop: 'Stop 2C', time: '11:45 AM' },
-    ],
+    ], 
     Bus3: [
       { stop: 'Stop 3A', time: '12:00 PM' },
       { stop: 'Stop 3B', time: '12:15 PM' },

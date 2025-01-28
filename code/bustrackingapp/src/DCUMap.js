@@ -13,7 +13,7 @@ const busIcon = new L.Icon({
 
 const DCUMap = () => {
   const dcuPosition = [53.385846, -6.257644]; 
-  const [busPosition, setBusPosition] = useState(null);
+  const [busPosition, setBusPosition] = useState(null); //Skeleton Bus-tracking Code
   const targetBusId = '4434_1645'; 
 
   useEffect(() => {
@@ -42,10 +42,11 @@ const DCUMap = () => {
   }, [targetBusId]);
 
   return (
-    <MapContainer center={dcuPosition} zoom={14} minZoom={10} style={{ height: '500px', width: '100%' }}>
+    <MapContainer center={dcuPosition} zoom={14} minZoom={10} style={{ height: '500px', width: '100%' } }>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
+        
       />
 
       {busPosition && busPosition.lat && busPosition.lon && (
