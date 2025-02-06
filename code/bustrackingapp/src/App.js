@@ -10,11 +10,9 @@ function App() {
   const [lastActionTime, setLastActionTime] = useState(null);
   const [selectedBus, setSelectedBus] = useState(null);
   const [selectedStop, setSelectedStop] = useState(null);
-  const [adjustedStops, setAdjustedStops] = useState(null);
+  const [adjustedReports, setAdjustedReports] = useState({}); 
   const [timeDifference, setTimeDifference] = useState(null);
 
-
-  // This is just dummy code for testing, will not be here when project is final
   const busStops = {
     Bus1: [
       { stop: 'Stop 1A', time: '10:30 AM' },
@@ -25,7 +23,7 @@ function App() {
       { stop: 'Stop 2A', time: '11:15 AM' },
       { stop: 'Stop 2B', time: '11:30 AM' },
       { stop: 'Stop 2C', time: '11:45 AM' },
-    ], 
+    ],
     Bus3: [
       { stop: 'Stop 3A', time: '12:00 PM' },
       { stop: 'Stop 3B', time: '12:15 PM' },
@@ -55,15 +53,14 @@ function App() {
     const now = new Date();
     const actualTime = now.toLocaleTimeString();
     setLastActionTime(actualTime);
-  
+
     if (selectedStop) {
       const scheduledTime = parseTime(selectedStop.time);
-  
       const delayInMinutes = Math.round((now - scheduledTime) / (1000 * 60));
-  
+
       const delayHours = Math.floor(Math.abs(delayInMinutes) / 60);
       const delayMinutes = Math.abs(delayInMinutes) % 60;
-  
+
       const differenceString =
         delayInMinutes === 0
           ? 'On time'
@@ -74,33 +71,24 @@ function App() {
           : `${delayHours > 0 ? `${delayHours} hour${delayHours > 1 ? 's' : ''} ` : ''}${
               delayMinutes > 0 ? `${delayMinutes} minute${delayMinutes > 1 ? 's' : ''} ` : ''
             }early`;
-  
+
       setTimeDifference(differenceString);
-  
-      if (!adjustedStops) {
-        const updatedStops = busStops[selectedBus].map((stop, index) => {
-          const stopTime = parseTime(stop.time);
-  
-          if (busStops[selectedBus].indexOf(selectedStop) <= index) {
-            let newTime = new Date(stopTime.getTime() + delayInMinutes * 60 * 1000);
-  
-            const roundedMinutes = Math.ceil(newTime.getMinutes() / 1);
-            newTime.setMinutes(roundedMinutes);
-  
-            stop.adjustedTime = newTime.toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
-          }
-  
-          return stop;
-        });
-  
-        setAdjustedStops(updatedStops);
-      }
+
+      const updatedStops = (adjustedReports[selectedBus] || busStops[selectedBus]).map((stop, index) => {
+        const stopTime = parseTime(stop.time);
+        if (busStops[selectedBus].indexOf(selectedStop) <= index) {
+          let newTime = new Date(stopTime.getTime() + delayInMinutes * 60 * 1000);
+          stop.adjustedTime = newTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return stop;
+      });
+
+      setAdjustedReports((prev) => ({
+        ...prev,
+        [selectedBus]: updatedStops,
+      }));
     }
   };
-  
 
   const parseTime = (timeString) => {
     const [hours, minutes, meridian] = timeString.split(/[: ]/);
@@ -117,7 +105,6 @@ function App() {
 
   const handleBusClick = (bus) => {
     setSelectedBus(bus);
-    setAdjustedStops(null);
     setTimeDifference(null);
   };
 
@@ -134,7 +121,6 @@ function App() {
     setSelectedBus(null);
     setSelectedStop(null);
     setShowBusHereButton(false);
-    setAdjustedStops(null);
     setTimeDifference(null);
   };
 
@@ -167,16 +153,10 @@ function App() {
             ) : !selectedStop ? (
               <>
                 <ul className="stop-list">
-                  {(adjustedStops || busStops[selectedBus]).map((stop, index) => (
-                    <li
-                      key={index}
-                      className="stop-item"
-                      onClick={() => handleStopClick(stop)}
-                    >
+                  {(adjustedReports[selectedBus] || busStops[selectedBus]).map((stop, index) => (
+                    <li key={index} className="stop-item" onClick={() => handleStopClick(stop)}>
                       {stop.stop} - Scheduled: {stop.time}{' '}
-                      {stop.adjustedTime && (
-                        <span> (Adjusted: {stop.adjustedTime})</span>
-                      )}
+                      {stop.adjustedTime && <span> (Adjusted: {stop.adjustedTime})</span>}
                     </li>
                   ))}
                 </ul>
@@ -221,12 +201,7 @@ function App() {
           </section>
         </div>
       </main>
-      {showPopup && (
-        <Popup
-          onClose={(answer) => handlePopupClose(answer)}
-          onBusHere={handleBusHereButton}
-        />
-      )}
+      {showPopup && <Popup onClose={(answer) => handlePopupClose(answer)} onBusHere={handleBusHereButton} />}
     </div>
   );
 }
