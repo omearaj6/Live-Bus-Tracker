@@ -3,6 +3,7 @@ import DCUMap from './DCUMap';
 import './App.css';
 import Popup from './Popup';
 import Clock from './Clock';
+import ReportBox from './ReportBox';
 
 function App() {
   const [showPopup, setShowPopup] = useState(false);
@@ -10,9 +11,11 @@ function App() {
   const [lastActionTime, setLastActionTime] = useState(null);
   const [selectedBus, setSelectedBus] = useState(null);
   const [selectedStop, setSelectedStop] = useState(null);
-  const [adjustedReports, setAdjustedReports] = useState({}); 
+  const [adjustedStops, setAdjustedStops] = useState(null);
   const [timeDifference, setTimeDifference] = useState(null);
+  const [reportedBusStatus, setReportedBusStatus] = useState(null);
 
+  // Dummy bus stops data
   const busStops = {
     Bus1: [
       { stop: 'Stop 1A', time: '10:30 AM' },
@@ -56,6 +59,7 @@ function App() {
 
     if (selectedStop) {
       const scheduledTime = parseTime(selectedStop.time);
+
       const delayInMinutes = Math.round((now - scheduledTime) / (1000 * 60));
 
       const delayHours = Math.floor(Math.abs(delayInMinutes) / 60);
@@ -74,19 +78,33 @@ function App() {
 
       setTimeDifference(differenceString);
 
-      const updatedStops = (adjustedReports[selectedBus] || busStops[selectedBus]).map((stop, index) => {
-        const stopTime = parseTime(stop.time);
-        if (busStops[selectedBus].indexOf(selectedStop) <= index) {
-          let newTime = new Date(stopTime.getTime() + delayInMinutes * 60 * 1000);
-          stop.adjustedTime = newTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        return stop;
+      // Update the reported bus status
+      setReportedBusStatus({
+        bus: selectedBus,
+        status: differenceString,
       });
 
-      setAdjustedReports((prev) => ({
-        ...prev,
-        [selectedBus]: updatedStops,
-      }));
+      if (!adjustedStops) {
+        const updatedStops = busStops[selectedBus].map((stop, index) => {
+          const stopTime = parseTime(stop.time);
+
+          if (busStops[selectedBus].indexOf(selectedStop) <= index) {
+            let newTime = new Date(stopTime.getTime() + delayInMinutes * 60 * 1000);
+
+            const roundedMinutes = Math.ceil(newTime.getMinutes() / 1);
+            newTime.setMinutes(roundedMinutes);
+
+            stop.adjustedTime = newTime.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          }
+
+          return stop;
+        });
+
+        setAdjustedStops(updatedStops);
+      }
     }
   };
 
@@ -105,6 +123,7 @@ function App() {
 
   const handleBusClick = (bus) => {
     setSelectedBus(bus);
+    setAdjustedStops(null);
     setTimeDifference(null);
   };
 
@@ -121,6 +140,7 @@ function App() {
     setSelectedBus(null);
     setSelectedStop(null);
     setShowBusHereButton(false);
+    setAdjustedStops(null);
     setTimeDifference(null);
   };
 
@@ -132,6 +152,10 @@ function App() {
       </header>
       <main className="App-content">
         <div className="content-wrapper">
+          {/* Render the ReportBox above the map section */}
+          {reportedBusStatus && (
+            <ReportBox reportedBusStatus={[reportedBusStatus]} />
+          )}
           <section className="map-section">
             <h2>Live Map</h2>
             <DCUMap />
@@ -153,10 +177,16 @@ function App() {
             ) : !selectedStop ? (
               <>
                 <ul className="stop-list">
-                  {(adjustedReports[selectedBus] || busStops[selectedBus]).map((stop, index) => (
-                    <li key={index} className="stop-item" onClick={() => handleStopClick(stop)}>
+                  {(adjustedStops || busStops[selectedBus]).map((stop, index) => (
+                    <li
+                      key={index}
+                      className="stop-item"
+                      onClick={() => handleStopClick(stop)}
+                    >
                       {stop.stop} - Scheduled: {stop.time}{' '}
-                      {stop.adjustedTime && <span> (Adjusted: {stop.adjustedTime})</span>}
+                      {stop.adjustedTime && (
+                        <span> (Adjusted: {stop.adjustedTime})</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -201,7 +231,12 @@ function App() {
           </section>
         </div>
       </main>
-      {showPopup && <Popup onClose={(answer) => handlePopupClose(answer)} onBusHere={handleBusHereButton} />}
+      {showPopup && (
+        <Popup
+          onClose={(answer) => handlePopupClose(answer)}
+          onBusHere={handleBusHereButton}
+        />
+      )}
     </div>
   );
 }
