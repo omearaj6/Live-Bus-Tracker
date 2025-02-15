@@ -1,0 +1,22 @@
+{
+  "agencies": [
+    {
+      "url": "https://www.transportforireland.ie/transitData/Data/GTFS_Dublin_Bus.zip",
+      "realtimeTripUpdates": {
+        "url": "https://api.nationaltransport.ie/gtfsr/v2/TripUpdates?format=aspx",
+        "headers": {
+          "Cache-Control": "no-cache",
+          "x-api-key": "6d05f38fd9034aaf9a21de0a82d87eab"
+        }
+      },
+      "realtimeVehiclePositions": {
+        "url": "https://api.nationaltransport.ie/gtfsr/v2/Vehicles?format=aspx",
+        "headers": {
+          "Cache-Control": "no-cache",
+          "x-api-key": "6d05f38fd9034aaf9a21de0a82d87eab"
+        }
+      }
+    }
+  ],
+  "sqlitePath": "./gtfs.sqlite3"
+}
