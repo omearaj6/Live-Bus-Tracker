@@ -1,0 +1,54 @@
+.header {
+  width: 100% - 2em;
+  font-size: 1em;
+  color: white;
+  background-color: rgb(25, 25, 25);
+  padding: 1em 1em;
+  margin: 0;
+}
+
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.headerTitle {
+  font-size: 1.6em;
+  font-weight: bold;
+  margin: 0;
+}
+
+.headerLogo {
+  height: 1.6em;
+}
+
+.headerLinks {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.headerLinks li {
+  margin: 0 0.8em;
+}
+
+.headerLinks li:first-child {
+  margin-left: 0;
+}
+
+.headerLinks li:last-child {
+  margin-right: 0;
+}
+
+.headerLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerLinks a svg {
+  margin-right: 0.4em;
+}

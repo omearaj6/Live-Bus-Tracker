@@ -1,0 +1,52 @@
+.secondaryHeader {
+    width: 100% - 1em;
+    background-color: rgb(25, 25, 25);
+    padding: 0.5em 0em 0.5em 1em;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-bottom: 2px solid #222;
+    height: 4em; /* Fixed height */
+    overflow: hidden;
+  }
+  
+  .topRow,
+  .bottomRow {
+    display: flex;
+    gap: 0.5em;
+    justify-content: flex-start;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  
+  .bottomRow {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+  }
+  
+  .bottomRow.visible {
+    opacity: 1;
+    visibility: visible;
+    position: static;
+  }
+  
+  .headerButton {
+    padding: 0.5em 1em;
+    border: 1px solid #555;
+    background-color: #333;
+    color: yellow;
+    font-size: 0.9em;
+    border-radius: 20px; /* Rounded buttons */
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .headerButton:hover {
+    background-color: #444;
+  }
+  
+  .headerButton.selected {
+    background-color: yellow;
+    color: black;
+    border-color: yellow;
+  }
