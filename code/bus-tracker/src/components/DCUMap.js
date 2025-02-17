@@ -1,9 +1,16 @@
-import React from 'react';
-import { MapContainer, TileLayer} from 'react-leaflet';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import features from './dublin.json';
+import L from 'leaflet';
 
-
-
+//// Define a custom bus stop icon
+//const busStopIcon = new L.Icon({
+//  iconUrl: require('leaflet/dist/images/marker-icon.png'), // Replace with a custom image if needed
+//  iconSize: [30, 30],
+//  iconAnchor: [15, 30],
+//  popupAnchor: [1, -30],
+//});
 
 const DCUMap = ({ children }) => {
   const dcuPosition = [53.385846, -6.257644];
