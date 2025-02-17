@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from 'react-leaflet';
+import React from 'react';
+import { MapContainer, TileLayer} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import features from './dublin.json';
-import L from 'leaflet';
 
 //// Define a custom bus stop icon
 //const busStopIcon = new L.Icon({

@@ -1,35 +1,54 @@
-# syntax = docker/dockerfile:1
+# Use an official Node.js runtime as the base image
+FROM node:20-slim as base
 
-ARG NODE_VERSION=23.7.0
-FROM node:${NODE_VERSION}-slim as base
-
-LABEL fly_launch_runtime="NodeJS"
-
+# Set working directory
 WORKDIR /app
 
+# Set production environment
 ENV NODE_ENV=production
 
+# Install dependencies for backend
 FROM base as build
-RUN apt-get update -qq && apt-get install -y python-is-python3 pkg-config build-essential
 
+# Install build tools (only for dependencies that need compilation)
+RUN apt-get update -qq && apt-get install -y python3 pkg-config build-essential
+
+# Copy backend dependencies and install
 COPY code/bustrack-api/package.json code/bustrack-api/package-lock.json ./bustrack-api/
 RUN npm install --prefix bustrack-api
 
+# Copy backend source code and config file
 COPY code/bustrack-api/. ./bustrack-api
+COPY code/bustrack-api/config.json ./bustrack-api/config.json
 
+# Install dependencies for frontend
 COPY code/bus-tracker/package.json code/bus-tracker/package-lock.json ./bus-tracker/
 RUN npm install --prefix bus-tracker
 
+# Copy frontend source code
 COPY code/bus-tracker/. ./bus-tracker
 
+# Set environment variables for frontend build (if needed)
+ENV VITE_API_URL=http://your-api-url.com
+
+# Build frontend (assuming React or similar framework)
 RUN npm run build --prefix bus-tracker
 
+# Final production stage
 FROM base
 
-COPY --from=build /app /app
+# Copy built frontend and backend
+COPY --from=build /app/bustrack-api ./bustrack-api
+COPY --from=build /app/bus-tracker/build ./bus-tracker/build
 
-WORKDIR /app/bustrack-api
+# Install production dependencies for the backend
+RUN npm install --prefix bustrack-api --production
 
-EXPOSE 3000
+# Expose the port your app listens on (must match server.js)
+EXPOSE 5000
 
-CMD ["npm", "start"]
+# Set environment variables (use flyctl secrets for sensitive data)
+ENV PORT=5000
+
+# Start the backend server
+CMD ["node", "bustrack-api/server.js"]
