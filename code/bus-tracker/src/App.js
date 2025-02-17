@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from 'react-leaflet';
+import {GeoJSON, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 
 import './App.css';
-import Clock from './components/Clock';
 
 
 
@@ -16,7 +15,6 @@ function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
 
   const [geoJsonRoute, setGeoJsonRoute] = useState(null);
-  const [geoJsonStops, setGeoJsonStops] = useState(null);
   const [busStopMarkers, setBusStopMarkers] = useState(null);
   const [showGeoJson, setShowGeoJson] = useState(false);
 
