@@ -8,7 +8,7 @@ import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
 import TripOverlay from "./components/TripOverlay/TripOverlay";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = "https://your-deployed-server.onrender.com" || "http://localhost:5000";
 
 // Fix Leaflet icon paths
 delete L.Icon.Default.prototype._getIconUrl;
