@@ -102,6 +102,10 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
     const { stop_id, route_id, direction_id } = req.params;
     console.log("Fetching stop times for:", stop_id, route_id, direction_id); // Debugging
 
+    if (!direction_id) {
+      return res.status(400).json({ error: "Direction ID is required" });
+    }
+
     const trips = await getTrips({ route_id, direction_id });
 
     if (!trips || trips.length === 0) {
