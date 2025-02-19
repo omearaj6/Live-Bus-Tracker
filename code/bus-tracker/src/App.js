@@ -8,7 +8,6 @@ import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
 import TripOverlay from "./components/TripOverlay/TripOverlay"; 
 
-const API_BASE_URL = "http://localhost:5000"; // Update to match your backend URL
 
 function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
@@ -16,7 +15,7 @@ function App() {
 
   const [geoJsonRoute, setGeoJsonRoute] = useState(null);
   const [busStopMarkers, setBusStopMarkers] = useState(null);
-  const [singleStopMarker, setSingleStopMarker] = useState(null);
+  const [singleStopMarker, setSingleStopMarker]  = useState(null);
   const [showGeoJsonRoute, setShowGeoJsonRoute] = useState(false);
   const [showBusStopMarkers, setShowBusStopMarkers] = useState(false);
   const [showSingleStopMarker, setShowSingleStopMarker] = useState(false);
@@ -25,7 +24,7 @@ function App() {
   const [stopTimes, setStopTimes] = useState(null);
   const [stopTimeUpdates, setStopTimeUpdates] = useState(null);
   const [userReports, setUserReports] = useState(null);
-  const [vehiclePositions, setVehiclePositions] = useState(null);
+  const [vehiclePositions, setVehiclePosition] = useState(null);
   const [showTripOverlay, setShowTripOverlay] = useState(false);
 
   /* Icon for bus stops */
@@ -36,117 +35,120 @@ function App() {
     popupAnchor: [1, -30],
   });
 
-  /* Fetch the N4 route ID when the app starts */
+  /* When the app renders, we must fetch the route ids for each of our routes.
+     This makes it easier and faster to use our other functions. */
   useEffect(() => {
     const fetchRouteId = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/routeid/N4`);
-        if (!response.ok) throw new Error("Failed to fetch route ID");
-        const data = await response.json();
-        setN4RouteId(data.route_id);
+        const response = await fetch(`http://localhost:5000/api/routeid/N4`);
+        const data = await response.text();
+        setN4RouteId(data);
       } catch (error) {
-        console.error("Error fetching route ID:", error);
+        console.error("Error fetching route id:", error);
         setShowFail(true);
       }
     };
     fetchRouteId();
   }, []);
 
-  /* Fetch stop times, updates, and user reports */
+  /* This handles collecting all the data for our trip overlay */
   const checkTrips = async (stop_id, route_id, direction_id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
-      if (!response.ok) throw new Error("Failed to fetch stop times");
+      const response = await fetch(`http://localhost:5000/api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
       const data = await response.json();
       setStopTimes(data.stopTimes);
       setStopTimeUpdates(data.stopTimeUpdates);
       setUserReports(data.userReports);
-      setVehiclePositions(data.vehiclePositions);
-      console.log("Vehicle positions:", data.vehiclePositions); // Debugging
+      setVehiclePosition(data.vehiclePositions);
+      console.log(data.vehiclePositions)
     } catch (error) {
-      console.error("Error fetching stop times:", error);
+      console.error("Error fetching route:", error);
     }
-  };
+  }
 
-  /* Secondary header component for route and direction selection */
+  /* This is our secondary header which handles the selection of route and direction of route */
   const SecondaryHeader = () => {
     const [selectedTop, setSelectedTop] = useState(null);
     const [selectedBottom, setSelectedBottom] = useState(null);
     
-    /* Handle stop selection for trip overlay */
+    /* This will handle all the functions for setting up the trip overlay */
     const popupButton = (feature) => {
-      if (!selectedBottom) {
-        console.error("Direction ID is null. Please select a direction first.");
-        return;
-      }
       checkTrips(feature.stop_id, selectedTop, selectedBottom);
       setShowBusStopMarkers(false);
-      setSingleStopMarker(
-        <Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon} />
+      setSingleStopMarker(  // Make a marker for the selected stop
+        <Marker
+              position={[feature.stop_lat, feature.stop_lon]}
+              icon={busStopIcon}
+            >
+        </Marker>
       );
       setShowSingleStopMarker(true);
       setShowTripOverlay(true);
-    };
+    }
 
-    /* Fetch the GeoJSON data for the selected route */
+    /* Fetch the the GeoJSON data for the selected route */
     const fetchRoute = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/route/${selectedTop}/${selectedBottom}`);
-        if (!response.ok) throw new Error("Failed to fetch route");
+        const response = await fetch(`http://localhost:5000/api/route/${selectedTop}/${selectedBottom}`);
         const data = await response.json();
         setGeoJsonRoute(data);
-        setShowGeoJsonRoute(true);
       } catch (error) {
         console.error("Error fetching route:", error);
       }
     };
 
-    /* Fetch the GeoJSON data for the selected route's stops */
+    /* Fetch the the GeoJSON data for the selected route's stops */
     const fetchStops = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/stops/${selectedTop}/${selectedBottom}`);
-        if (!response.ok) throw new Error("Failed to fetch stops");
+        const response = await fetch(`http://localhost:5000/api/stops/${selectedTop}/${selectedBottom}`);
         const data = await response.json();
-        setBusStopMarkers(
-          data.map((feature, index) => (
-            <Marker key={index} position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon}>
+        setBusStopMarkers(  // Make markers for all stops
+          data.map((feature, index) => ( 
+            <Marker
+              key={index}
+              position={[feature.stop_lat, feature.stop_lon]}
+              icon={busStopIcon}
+            >
               <Popup>
                 <b>{feature.stop_name}</b> <br />
-                <button className="popupbutton" onClick={() => popupButton(feature)}>
+                <button
+                  className={`popupbutton`}
+                  onClick={() => popupButton(feature)}
+                >
                   Check Trips
                 </button>
               </Popup>
             </Marker>
           ))
         );
-        setShowBusStopMarkers(true);
       } catch (error) {
         console.error("Error fetching stops:", error);
       }
     };
 
-    /* Handle route selection */
+    /* Select and unselect the route, direction is unselected is route is changed */
     const handleTopSelect = (option) => {
       setSelectedTop(selectedTop === option ? null : option);
       setSelectedBottom(null);
     };
 
-    /* Handle direction selection */
+    /* Select and unselect the direction, once route and direction is chosen, fetch GeoJSON data for all stops
+       and the route and display on map */
     const handleBottomSelect = (option) => {
       setSelectedBottom(selectedBottom === option ? null : option);
       if (selectedTop && selectedBottom !== null) {
         fetchRoute();
         fetchStops();
       }
-      setShowGeoJsonRoute(selectedBottom !== null);
-      setShowBusStopMarkers(selectedBottom !== null);
+      setShowGeoJsonRoute(selectedBottom != null ? true : false);
+      setShowBusStopMarkers(selectedBottom != null ? true : false);
     };
 
     return (
       <div className="secondaryHeader">
         <div className="topRow">
           <button
-            className={`headerButton ${selectedTop === n4RouteId ? "selected" : ""}`}
+            className={`headerButton ${selectedTop === n4RouteId ? "selected" : ""}`} // Controls what the class name is for css
             onClick={() => handleTopSelect(n4RouteId)}
           >
             N4
@@ -156,7 +158,7 @@ function App() {
         <div className={`bottomRow ${selectedTop ? "visible" : ""}`}>
           <button
             className={`headerButton ${selectedBottom === "0" ? "selected" : ""}`}
-            onClick={() => handleBottomSelect("0")}
+            onClick={() => handleBottomSelect("0")} // direction_id is either 0 or 1
           >
             Blanchardstown
           </button>
@@ -173,30 +175,27 @@ function App() {
 
   return (
     <div className="relative w-full h-screen">
-      <Header />
-      <SecondaryHeader />
-      <DCUMap showTripOverlay={showTripOverlay}>
-        {showBusStopMarkers && busStopMarkers}
-        {showGeoJsonRoute && geoJsonRoute && <GeoJSON data={geoJsonRoute} />}
-        {showSingleStopMarker && singleStopMarker}
-        {selectedVehicle}
-      </DCUMap>
-      {showTripOverlay && (
-        <TripOverlay
-          stopTimes={stopTimes}
-          stopTimeUpdates={stopTimeUpdates}
-          userReports={userReports}
-          vehiclePositions={vehiclePositions}
-          setShowTripOverlay={setShowTripOverlay}
-          setSelectedVehicle={setSelectedVehicle}
-        />
-      )}
-      {showFail && (
-        <div className="error-box">
-          <p>Failed to connect to backend. Please refresh the page.</p>
+        <Header />
+        <SecondaryHeader />
+          <DCUMap showTripOverlay={showTripOverlay}>
+            {showBusStopMarkers && busStopMarkers}
+            {showGeoJsonRoute && geoJsonRoute && <GeoJSON data={geoJsonRoute} />}
+            {showSingleStopMarker && singleStopMarker}
+            {selectedVehicle}
+          </DCUMap>
+        {showTripOverlay && <TripOverlay 
+        stopTimes={stopTimes} 
+        stopTimeUpdates={stopTimeUpdates}  
+        userReports={userReports} 
+        vehiclePositions={vehiclePositions}
+        setShowTripOverlay={setShowTripOverlay}
+        setSelectedVehicle={setSelectedVehicle}
+        />}
+        {showFail && 
+          <div className="error-box">
+            <p>Failed to connect to backend, refresh the page</p>
+          </div>}
         </div>
-      )}
-    </div>
   );
 }
 
