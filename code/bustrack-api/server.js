@@ -18,7 +18,6 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Serve React frontend
 const frontendPath = path.join(__dirname, "bus-tracker/build");
 app.use(express.static(frontendPath));
 
@@ -28,7 +27,6 @@ async function loadConfig() {
   return config;
 }
 
-// ✅ Get route ID
 app.get('/api/routeid/:route_short_name', async (req, res) => {
   try {
     const { route_short_name } = req.params;
@@ -50,7 +48,6 @@ app.get('/api/routeid/:route_short_name', async (req, res) => {
   }
 });
 
-// ✅ Get route shape as GeoJSON
 app.get('/api/route/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
@@ -75,7 +72,6 @@ app.get('/api/route/:route_id/:direction_id', async (req, res) => {
   }
 });
 
-// ✅ Get stops for a route
 app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
@@ -104,7 +100,6 @@ app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
   }
 });
 
-// ✅ Get scheduled stop times and realtime updates
 app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   try {
     const { stop_id, route_id, direction_id } = req.params;
@@ -161,7 +156,6 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   }
 });
 
-// ✅ Submit user report
 app.post("/api/report", async (req, res) => {
   try {
     const { trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description } = req.body;
@@ -181,12 +175,10 @@ app.post("/api/report", async (req, res) => {
   }
 });
 
-// ✅ Fallback route for React App
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
