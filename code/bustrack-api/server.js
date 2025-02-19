@@ -5,10 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates } from 'gtfs';
 import sqlite3 from 'sqlite3';
-//Working Version
+
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.use(cors());
+app.use(cors({ origin: "https://your-frontend-domain.com" })); // Update with your frontend domain
 app.use(express.json());
 
 // Get __dirname equivalent in ES Modules
@@ -100,9 +100,12 @@ app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
 app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   try {
     const { stop_id, route_id, direction_id } = req.params;
+    console.log("Fetching stop times for:", stop_id, route_id, direction_id); // Debugging
+
     const trips = await getTrips({ route_id, direction_id });
 
     if (!trips || trips.length === 0) {
+      console.error("No trips found for:", route_id, direction_id); // Debugging
       return res.status(404).json({ error: `No trips found for ${route_id}, direction ${direction_id}` });
     }
 
