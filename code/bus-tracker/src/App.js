@@ -8,7 +8,7 @@ import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
 import TripOverlay from "./components/TripOverlay/TripOverlay"; 
 
-const API_BASE_URL = "https://live-bus-tracker.onrender.com"; // Updated for Render
+const API_BASE_URL = "https://live-bus-tracker.onrender.com"; 
 
 function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
@@ -51,9 +51,18 @@ function App() {
   /* Fetch stop times, updates, and user reports */
   const checkTrips = async (stop_id, route_id, direction_id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
-      if (!response.ok) throw new Error("Failed to fetch stop times");
+      const url = `${API_BASE_URL}/api/stoptimes/${stop_id}/${route_id}/${direction_id}`;
+      console.log("Fetching stop times from:", url); // Debugging
+  
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error("Failed to fetch stop times. Status:", response.status); // Debugging
+        throw new Error("Failed to fetch stop times");
+      }
+  
       const data = await response.json();
+      console.log("Stop times data:", data); // Debugging
+  
       setStopTimes(data.stopTimes);
       setStopTimeUpdates(data.stopTimeUpdates);
       setUserReports(data.userReports);
@@ -61,6 +70,7 @@ function App() {
       console.error("Error fetching stop times:", error);
     }
   };
+  
 
   /* Handles fetching route data */
   const fetchRoute = async (route_id, direction_id) => {
