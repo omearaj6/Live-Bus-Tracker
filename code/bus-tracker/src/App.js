@@ -26,6 +26,10 @@ function App() {
   const [vehiclePositions, setVehiclePositions] = useState(null);
   const [showFail, setShowFail] = useState(false);
 
+  // ✅ Move selectedTop and selectedBottom here so they can be used everywhere
+  const [selectedTop, setSelectedTop] = useState(null);
+  const [selectedBottom, setSelectedBottom] = useState(null);
+
   /* Icon for bus stops */
   const busStopIcon = new L.Icon({
     iconUrl: require("leaflet/dist/images/marker-icon.png"),
@@ -51,14 +55,14 @@ function App() {
   }, []);
 
   /* Fetch stop times, updates, and user reports */
-  const checkTrips = async (stop_id, route_id, direction_id) => {
-    if (!route_id || direction_id === null) {
-      console.error("Invalid route_id or direction_id:", route_id, direction_id);
+  const checkTrips = async (stop_id) => {
+    if (!selectedTop || selectedBottom === null) {
+      console.error("Invalid route_id or direction_id:", selectedTop, selectedBottom);
       return;
     }
 
     try {
-      const url = `${API_BASE_URL}/api/stoptimes/${stop_id}/${route_id}/${direction_id}`;
+      const url = `${API_BASE_URL}/api/stoptimes/${stop_id}/${selectedTop}/${selectedBottom}`;
       console.log("Fetching stop times from:", url);
 
       const response = await fetch(url);
@@ -80,11 +84,11 @@ function App() {
   };
 
   /* Handles fetching route data */
-  const fetchRoute = async (route_id, direction_id) => {
-    if (!route_id || direction_id === null) return;
+  const fetchRoute = async () => {
+    if (!selectedTop || selectedBottom === null) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/route/${route_id}/${direction_id}`);
+      const response = await fetch(`${API_BASE_URL}/api/route/${selectedTop}/${selectedBottom}`);
       if (!response.ok) throw new Error("Failed to fetch route");
       const data = await response.json();
       setGeoJsonRoute(data);
@@ -95,11 +99,11 @@ function App() {
   };
 
   /* Handles fetching stop data */
-  const fetchStops = async (route_id, direction_id) => {
-    if (!route_id || direction_id === null) return;
+  const fetchStops = async () => {
+    if (!selectedTop || selectedBottom === null) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/stops/${route_id}/${direction_id}`);
+      const response = await fetch(`${API_BASE_URL}/api/stops/${selectedTop}/${selectedBottom}`);
       if (!response.ok) throw new Error("Failed to fetch stops");
       const data = await response.json();
       setBusStopMarkers(
@@ -122,7 +126,7 @@ function App() {
 
   /* Handles stop selection for trip overlay */
   const popupButton = (feature) => {
-    checkTrips(feature.stop_id, selectedTop, selectedBottom);
+    checkTrips(feature.stop_id);
     setShowBusStopMarkers(false);
     setSingleStopMarker(<Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon} />);
     setShowSingleStopMarker(true);
@@ -131,9 +135,6 @@ function App() {
 
   /* Secondary Header */
   const SecondaryHeader = () => {
-    const [selectedTop, setSelectedTop] = useState(null);
-    const [selectedBottom, setSelectedBottom] = useState(null);
-
     /* Select and unselect the route */
     const handleTopSelect = (option) => {
       setSelectedTop(option === selectedTop ? null : option);
@@ -150,8 +151,8 @@ function App() {
         setShowBusStopMarkers(false);
       } else {
         setSelectedBottom(option);
-        fetchRoute(selectedTop, option);
-        fetchStops(selectedTop, option);
+        fetchRoute();
+        fetchStops();
       }
     };
 
