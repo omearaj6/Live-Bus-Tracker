@@ -40,7 +40,7 @@ function App() {
   useEffect(() => {
     const fetchRouteId = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/routeid/N4`);
+        const response = await fetch(`https://live-bus-tracker.onrender.com//api/routeid/N4`);
         const data = await response.text();
         setN4RouteId(data);
       } catch (error) {
@@ -54,7 +54,7 @@ function App() {
   /* This handles collecting all the data for our trip overlay */
   const checkTrips = async (stop_id, route_id, direction_id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
+      const response = await fetch(`https://live-bus-tracker.onrender.com//api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
       const data = await response.json();
       setStopTimes(data.stopTimes);
       setStopTimeUpdates(data.stopTimeUpdates);
@@ -89,7 +89,7 @@ function App() {
     /* Fetch the the GeoJSON data for the selected route */
     const fetchRoute = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/route/${selectedTop}/${selectedBottom}`);
+        const response = await fetch(`https://live-bus-tracker.onrender.com//api/route/${selectedTop}/${selectedBottom}`);
         const data = await response.json();
         setGeoJsonRoute(data);
       } catch (error) {
@@ -100,7 +100,7 @@ function App() {
     /* Fetch the the GeoJSON data for the selected route's stops */
     const fetchStops = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/stops/${selectedTop}/${selectedBottom}`);
+        const response = await fetch(`https://live-bus-tracker.onrender.com//api/stops/${selectedTop}/${selectedBottom}`);
         const data = await response.json();
         setBusStopMarkers(  // Make markers for all stops
           data.map((feature, index) => ( 
