@@ -8,7 +8,7 @@ import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
 import TripOverlay from "./components/TripOverlay/TripOverlay"; 
 
-const API_BASE_URL = "http://localhost:5000"; // Update to match your server
+const API_BASE_URL = "http://localhost:5000"; 
 
 function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
@@ -64,6 +64,7 @@ function App() {
 
   /* Handles fetching route data */
   const fetchRoute = async (route_id, direction_id) => {
+    if (!route_id || direction_id === null) return;
     try {
       const response = await fetch(`${API_BASE_URL}/api/route/${route_id}/${direction_id}`);
       if (!response.ok) throw new Error("Failed to fetch route");
@@ -77,6 +78,7 @@ function App() {
 
   /* Handles fetching stop data */
   const fetchStops = async (route_id, direction_id) => {
+    if (!route_id || direction_id === null) return;
     try {
       const response = await fetch(`${API_BASE_URL}/api/stops/${route_id}/${direction_id}`);
       if (!response.ok) throw new Error("Failed to fetch stops");
