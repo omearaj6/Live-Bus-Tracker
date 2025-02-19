@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import features from './dublin.json';
 import L from 'leaflet';
 
 //// Define a custom bus stop icon
@@ -12,11 +11,11 @@ import L from 'leaflet';
 //  popupAnchor: [1, -30],
 //});
 
-const DCUMap = ({ children }) => {
+const DCUMap = ({ children, showTripOverlay }) => {
   const dcuPosition = [53.385846, -6.257644];
 
   return (
-    <div style={{ width: '100vw', height: 'calc(100vh - 9.3em)' }}>
+    <div style={{ width: '100vw', height: showTripOverlay ? 'calc(65vh - 9.3em)' : 'calc(100vh - 9.3em)' }}>
       <MapContainer center={dcuPosition} zoom={12} minZoom={12} style={{height: '100%', width: '100%'}}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -1,6 +1,16 @@
 import sqlite3 from 'sqlite3';
+import fs from 'fs'; // Import the file system module to delete the database file
+
+const dbFilePath = "user-reports.sqlite";
+
+// Delete the existing database file if it exists
+if (fs.existsSync(dbFilePath)) {
+    fs.unlinkSync(dbFilePath);
+    console.log("Existing database deleted.");
+}
+
 // Create (or open) the reports database
-const db = new sqlite3.Database("user-reports.sqlite");
+const db = new sqlite3.Database(dbFilePath);
 
 db.serialize(() => {
     db.run(`
