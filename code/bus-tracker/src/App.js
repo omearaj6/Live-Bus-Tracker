@@ -51,26 +51,30 @@ function App() {
   /* Fetch stop times, updates, and user reports */
   const checkTrips = async (stop_id, route_id, direction_id) => {
     try {
-      const url = `${API_BASE_URL}/api/stoptimes/${stop_id}/${route_id}/${direction_id}`;
-      console.log("Fetching stop times from:", url); // Debugging
+      console.log(`Fetching stop times for stop_id=${stop_id}, route_id=${route_id}, direction_id=${direction_id}`); // Debugging
   
-      const response = await fetch(url);
+      if (!stop_id || !route_id || direction_id === null) {
+        console.error("Invalid parameters for stop times request.");
+        return;
+      }
+  
+      const response = await fetch(`http://localhost:5000/api/stoptimes/${stop_id}/${route_id}/${direction_id}`);
+      
       if (!response.ok) {
-        console.error("Failed to fetch stop times. Status:", response.status); // Debugging
+        console.error("Failed to fetch stop times. Status:", response.status);
         throw new Error("Failed to fetch stop times");
       }
   
       const data = await response.json();
-      console.log("Stop times data:", data); // Debugging
-  
       setStopTimes(data.stopTimes);
       setStopTimeUpdates(data.stopTimeUpdates);
       setUserReports(data.userReports);
+      setVehiclePosition(data.vehiclePositions);
     } catch (error) {
       console.error("Error fetching stop times:", error);
     }
   };
-
+  
   /* Handles fetching route data */
   const fetchRoute = async (route_id, direction_id) => {
     try {
@@ -137,14 +141,10 @@ function App() {
 
   /* Handles direction selection */
   const handleBottomSelect = (option) => {
-    if (selectedBottom === option) {
-      setSelectedBottom(null);
-      setGeoJsonRoute(null);
-      setBusStopMarkers(null);
-      setShowGeoJsonRoute(false);
-      setShowBusStopMarkers(false);
-    } else {
-      setSelectedBottom(option);
+    console.log(`Setting direction_id to: ${option}`); 
+    setSelectedBottom(option);
+  
+    if (selectedTop && option !== null) {
       fetchRoute(selectedTop, option);
       fetchStops(selectedTop, option);
     }

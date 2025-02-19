@@ -8,7 +8,7 @@ import sqlite3 from 'sqlite3';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.use(cors({ origin: "https://your-frontend-domain.com" })); // Update with your frontend domain
+app.use(cors({ origin: "https://live-bus-tracker.onrender.com" })); 
 app.use(express.json());
 
 // Get __dirname equivalent in ES Modules
