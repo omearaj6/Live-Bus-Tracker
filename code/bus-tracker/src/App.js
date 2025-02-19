@@ -89,7 +89,7 @@ function App() {
       const data = await response.json();
       setBusStopMarkers(
         data.map((feature, index) => (
-          <Marker key={index} position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon}>
+          <Marker key={index} position={[feature.stop_lat, feature.stop_lon]} icon={busStopMarkers}>
             <Popup>
               <b>{feature.stop_name}</b> <br />
               <button className="popupbutton" onClick={() => popupButton(feature)}>
@@ -111,7 +111,7 @@ function App() {
     checkTrips(feature.stop_id, feature.route_id, feature.direction_id);
     setShowBusStopMarkers(false);
     setSingleStopMarker(
-      <Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon} />
+      <Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopMarkers} />
     );
     setShowSingleStopMarker(true);
     setShowTripOverlay(true);
