@@ -15,7 +15,7 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const frontendPath = path.join(__dirname, "bus-tracker/build");
+const frontendPath = path.join(__dirname, "../bus-tracker/build");
 app.use(express.static(frontendPath));
 
 let db;
