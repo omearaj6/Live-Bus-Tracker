@@ -6,14 +6,22 @@ import 'leaflet/dist/leaflet.css';
 import './App.css';
 import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
-import TripOverlay from "./components/TripOverlay/TripOverlay"; 
+import TripOverlay from "./components/TripOverlay/TripOverlay";
 
-const API_BASE_URL = "http://localhost:5000"; 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
+// Fix Leaflet icon paths
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
 function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
   const [geoJsonRoute, setGeoJsonRoute] = useState(null);
-  const [busStopMarkers, setBusStopMarkers] = useState(null);
+  const [busStopMarkers, setBusStopMarkers] = useState([]);
   const [singleStopMarker, setSingleStopMarker] = useState(null);
   const [showGeoJsonRoute, setShowGeoJsonRoute] = useState(false);
   const [showBusStopMarkers, setShowBusStopMarkers] = useState(false);
@@ -24,14 +32,7 @@ function App() {
   const [showTripOverlay, setShowTripOverlay] = useState(false);
   const [selectedTop, setSelectedTop] = useState(null);
   const [selectedBottom, setSelectedBottom] = useState(null);
-
-  /* Icon for bus stops */
-  const busStopIcon = new L.Icon({
-    iconUrl: require('leaflet/dist/images/marker-icon.png'),
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [1, -30],
-  });
+  const [error, setError] = useState(null);
 
   /* Fetch N4 Route ID on app start */
   useEffect(() => {
@@ -43,6 +44,7 @@ function App() {
         setN4RouteId(data.route_id);
       } catch (error) {
         console.error("Error fetching route ID:", error);
+        setError("Failed to fetch route ID. Please try again later.");
       }
     };
     fetchRouteId();
@@ -59,6 +61,7 @@ function App() {
       setUserReports(data.userReports);
     } catch (error) {
       console.error("Error fetching stop times:", error);
+      setError("Failed to fetch stop times. Please try again later.");
     }
   };
 
@@ -73,6 +76,7 @@ function App() {
       setShowGeoJsonRoute(true);
     } catch (error) {
       console.error("Error fetching route:", error);
+      setError("Failed to fetch route. Please try again later.");
     }
   };
 
@@ -98,12 +102,13 @@ function App() {
       setShowBusStopMarkers(true);
     } catch (error) {
       console.error("Error fetching stops:", error);
+      setError("Failed to fetch stops. Please try again later.");
     }
   };
 
   /* Handles stop selection for trip overlay */
   const popupButton = (feature) => {
-    checkTrips(feature.stop_id, selectedTop, selectedBottom);
+    checkTrips(feature.stop_id, feature.route_id, feature.direction_id);
     setShowBusStopMarkers(false);
     setSingleStopMarker(
       <Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon} />
@@ -118,7 +123,7 @@ function App() {
       setSelectedTop(null);
       setSelectedBottom(null);
       setGeoJsonRoute(null);
-      setBusStopMarkers(null);
+      setBusStopMarkers([]);
       setShowGeoJsonRoute(false);
       setShowBusStopMarkers(false);
     } else {
@@ -132,7 +137,7 @@ function App() {
     if (selectedBottom === option) {
       setSelectedBottom(null);
       setGeoJsonRoute(null);
-      setBusStopMarkers(null);
+      setBusStopMarkers([]);
       setShowGeoJsonRoute(false);
       setShowBusStopMarkers(false);
     } else {
@@ -169,9 +174,12 @@ function App() {
           </button>
         </div>
       </div>
+      {error && <div className="error-message">{error}</div>}
       <DCUMap showTripOverlay={showTripOverlay}>
         {showBusStopMarkers && busStopMarkers}
-        {showGeoJsonRoute && geoJsonRoute && <GeoJSON data={geoJsonRoute} />}
+        {showGeoJsonRoute && geoJsonRoute && Object.keys(geoJsonRoute).length > 0 && (
+          <GeoJSON data={geoJsonRoute} />
+        )}
         {showSingleStopMarker && singleStopMarker}
       </DCUMap>
       {showTripOverlay && (
