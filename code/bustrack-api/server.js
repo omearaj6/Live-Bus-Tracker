@@ -3,10 +3,7 @@ import cors from 'cors';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { 
-  openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, 
-  getTrips, getStoptimes, getStopTimeUpdates 
-} from 'gtfs';
+import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates } from 'gtfs';
 import sqlite3 from 'sqlite3';
 
 const app = express();
@@ -21,27 +18,41 @@ const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, "bus-tracker/build");
 app.use(express.static(frontendPath));
 
+let db;
+let reportsDb;
+
+async function initializeDb() {
+  const config = await loadConfig();
+  db = openDb(config);
+  reportsDb = new sqlite3.Database("user-reports.sqlite");
+}
+
 async function loadConfig() {
   const configPath = path.resolve('./config.json');
   const config = JSON.parse(await readFile(configPath, 'utf-8'));
   return config;
 }
 
+// Initialize database connection
+initializeDb();
+
+// Close database connections on server shutdown
+process.on("SIGINT", () => {
+  if (db) closeDb(db);
+  if (reportsDb) reportsDb.close();
+  process.exit();
+});
+
 app.get('/api/routeid/:route_short_name', async (req, res) => {
   try {
     const { route_short_name } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
-
     const route = await getRoutes({ route_short_name });
 
     if (!route || route.length === 0) {
-      closeDb(db);
       return res.status(404).json({ error: `No route found for ${route_short_name}` });
     }
 
     res.json({ route_id: route[0].route_id });
-    closeDb(db);
   } catch (error) {
     console.error("Error fetching route ID:", error);
     res.status(500).json({ error: "Failed to fetch route ID" });
@@ -51,21 +62,13 @@ app.get('/api/routeid/:route_short_name', async (req, res) => {
 app.get('/api/route/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
-
-    const shapesGeojson = await getShapesAsGeoJSON({ 
-      route_id, 
-      direction_id: Number(direction_id) 
-    });
+    const shapesGeojson = await getShapesAsGeoJSON({ route_id, direction_id: Number(direction_id) });
 
     if (!shapesGeojson || !shapesGeojson.features || shapesGeojson.features.length === 0) {
-      closeDb(db);
       return res.status(404).json({ error: `No route found for ${route_id}, direction ${direction_id}` });
     }
 
     res.json(shapesGeojson);
-    closeDb(db);
   } catch (error) {
     console.error("Error fetching route:", error);
     res.status(500).json({ error: "Failed to fetch route" });
@@ -75,25 +78,19 @@ app.get('/api/route/:route_id/:direction_id', async (req, res) => {
 app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
-
     const trips = await getTrips({ route_id, direction_id });
 
     if (!trips || trips.length === 0) {
-      closeDb(db);
       return res.status(404).json({ error: `No trips found for ${route_id}, direction ${direction_id}` });
     }
 
     const stops = await getStops({ trip_id: trips[0].trip_id });
 
     if (!stops || stops.length === 0) {
-      closeDb(db);
       return res.status(404).json({ error: `No stops found for trip_id: ${trips[0].trip_id}` });
     }
 
     res.json(stops);
-    closeDb(db);
   } catch (error) {
     console.error("Error fetching stops:", error);
     res.status(500).json({ error: "Failed to fetch stops" });
@@ -103,13 +100,9 @@ app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
 app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   try {
     const { stop_id, route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
-
     const trips = await getTrips({ route_id, direction_id });
 
     if (!trips || trips.length === 0) {
-      closeDb(db);
       return res.status(404).json({ error: `No trips found for ${route_id}, direction ${direction_id}` });
     }
 
@@ -117,7 +110,7 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
     const formattedDate = Number(
       `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
     );
-    const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes() - 30).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const formattedTime = new Date(now.getTime() - 30 * 60 * 1000).toTimeString().slice(0, 8); // Subtract 30 minutes
 
     let stopTimes = [];
     let stopTimeUpdates = [];
@@ -135,12 +128,14 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
     
     let userReports = [];
     if (trip_ids.length > 0) {
-      const reportsDb = new sqlite3.Database("user-reports.sqlite");
       reportsDb.all(
         `SELECT * FROM reports WHERE trip_id IN (${placeholders}) ORDER BY timestamp DESC`, 
         trip_ids, 
         (err, rows) => {
-          if (err) return res.status(500).json({ error: err.message });
+          if (err) {
+            console.error("Error fetching user reports:", err);
+            return res.status(500).json({ error: "Failed to fetch user reports" });
+          }
           userReports = rows;
           res.json({ stopTimes, stopTimeUpdates, userReports });
         }
@@ -148,8 +143,6 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
     } else {
       res.json({ stopTimes, stopTimeUpdates, userReports });
     }
-
-    closeDb(db);
   } catch (error) {
     console.error("Error fetching stop times:", error);
     res.status(500).json({ error: "Failed to fetch stop times" });
@@ -159,13 +152,15 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
 app.post("/api/report", async (req, res) => {
   try {
     const { trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description } = req.body;
-    const reportsDb = new sqlite3.Database("user-reports.sqlite");
 
     reportsDb.run(
       "INSERT INTO reports (trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description],
       function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+          console.error("Error submitting report:", err);
+          return res.status(500).json({ error: "Failed to submit report" });
+        }
         res.status(201).json({ message: "Report added", reportId: this.lastID });
       }
     );

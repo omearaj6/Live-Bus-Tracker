@@ -8,7 +8,7 @@ import DCUMap from './components/DCUMap';
 import Header from './components/Header/Header';
 import TripOverlay from "./components/TripOverlay/TripOverlay"; 
 
-const API_BASE_URL = "http://localhost:5000"; // Update to match your server
+const API_BASE_URL = "https://live-bus-tracker.onrender.com"; // Updated for Render
 
 function App() {
   const [n4RouteId, setN4RouteId] = useState(null);
