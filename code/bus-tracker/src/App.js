@@ -70,7 +70,6 @@ function App() {
       console.error("Error fetching stop times:", error);
     }
   };
-  
 
   /* Handles fetching route data */
   const fetchRoute = async (route_id, direction_id) => {
@@ -96,7 +95,7 @@ function App() {
           <Marker key={index} position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon}>
             <Popup>
               <b>{feature.stop_name}</b> <br />
-              <button className="popupbutton" onClick={() => popupButton(feature)}>
+              <button className="popupbutton" onClick={() => popupButton(feature, selectedBottom)}>
                 Check Trips
               </button>
             </Popup>
@@ -110,8 +109,9 @@ function App() {
   };
 
   /* Handles stop selection for trip overlay */
-  const popupButton = (feature) => {
-    checkTrips(feature.stop_id, selectedTop, selectedBottom);
+  const popupButton = (feature, direction_id) => {
+    console.log("Selected stop:", feature.stop_id, "Route:", selectedTop, "Direction:", direction_id); // Debugging
+    checkTrips(feature.stop_id, selectedTop, direction_id);
     setShowBusStopMarkers(false);
     setSingleStopMarker(
       <Marker position={[feature.stop_lat, feature.stop_lon]} icon={busStopIcon} />
