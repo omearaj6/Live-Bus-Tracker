@@ -2,13 +2,23 @@ import express from 'express';
 import cors from 'cors';
 import { readFile } from 'fs/promises';
 import path from 'path';
-import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates, importGtfs } from 'gtfs';
+import { fileURLToPath } from 'url';
+import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates } from 'gtfs';
 import sqlite3 from 'sqlite3';
 
+// Express App
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
+
+// Get __dirname equivalent in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve React frontend
+const frontendPath = path.join(__dirname, "../bus-tracker/build");
+app.use(express.static(frontendPath));
 
 async function loadConfig() {
   const configPath = path.resolve('./config.json');
@@ -16,6 +26,7 @@ async function loadConfig() {
   return config;
 }
 
+// Get route ID
 app.get('/api/routeid/:route_short_name', async (req, res) => {
   try {
     const { route_short_name } = req.params;
@@ -32,11 +43,12 @@ app.get('/api/routeid/:route_short_name', async (req, res) => {
     res.json({ route_id: route[0].route_id });
     closeDb(db);
   } catch (error) {
-    console.error('Error fetching route ID:', error);
-    res.status(500).json({ error: 'Failed to fetch route ID' });
+    console.error("Error fetching route ID:", error);
+    res.status(500).json({ error: "Failed to fetch route ID" });
   }
 });
 
+// Get route GeoJSON shape
 app.get('/api/route/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
@@ -56,11 +68,12 @@ app.get('/api/route/:route_id/:direction_id', async (req, res) => {
     res.json(shapesGeojson);
     closeDb(db);
   } catch (error) {
-    console.error('Error fetching route:', error);
-    res.status(500).json({ error: 'Failed to fetch route' });
+    console.error("Error fetching route:", error);
+    res.status(500).json({ error: "Failed to fetch route" });
   }
 });
 
+// Get stops of route
 app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
@@ -84,12 +97,12 @@ app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
     res.json(stops);
     closeDb(db);
   } catch (error) {
-    console.error('Error fetching stops:', error);
-    res.status(500).json({ error: 'Failed to fetch stops' });
+    console.error("Error fetching stops:", error);
+    res.status(500).json({ error: "Failed to fetch stops" });
   }
 });
 
-/* Get scheduled stop times and realtime updates */
+// Get scheduled stop times and realtime updates
 app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   try {
     const { stop_id, route_id, direction_id } = req.params;
@@ -141,11 +154,12 @@ app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
 
     closeDb(db);
   } catch (error) {
-    console.error('Error fetching stop times:', error);
-    res.status(500).json({ error: 'Failed to fetch stop times' });
+    console.error("Error fetching stop times:", error);
+    res.status(500).json({ error: "Failed to fetch stop times" });
   }
 });
 
+// Submit report to user report database
 app.post("/api/report", async (req, res) => {
   try {
     const { trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description } = req.body;
@@ -165,6 +179,12 @@ app.post("/api/report", async (req, res) => {
   }
 });
 
+// Fallback route for React app
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
