@@ -2,179 +2,178 @@ import express from 'express';
 import cors from 'cors';
 import { readFile } from 'fs/promises';
 import path from 'path';
-import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates, getVehiclePositions, importGtfs } from 'gtfs';
+import { fileURLToPath } from 'url';
+import { openDb, closeDb, getShapesAsGeoJSON, getStops, getRoutes, getTrips, getStoptimes, getStopTimeUpdates } from 'gtfs';
 import sqlite3 from 'sqlite3';
-
-
-/* Allow React frontend to access API */
+//Working Version
 const app = express();
-const PORT = "https://live-bus-tracker.onrender.com/" || 5000;
-app.use(cors()); 
+const PORT = process.env.PORT || 5000;
+app.use(cors());
+app.use(express.json());
 
-/* Function for loading and parsing config file in order to interact with node-gtfs */
+// Get __dirname equivalent in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const frontendPath = path.join(__dirname, "../bus-tracker/build");
+app.use(express.static(frontendPath));
+
+let db;
+let reportsDb;
+
+async function initializeDb() {
+  const config = await loadConfig();
+  db = openDb(config);
+  reportsDb = new sqlite3.Database("user-reports.sqlite");
+}
+
 async function loadConfig() {
   const configPath = path.resolve('./config.json');
   const config = JSON.parse(await readFile(configPath, 'utf-8'));
   return config;
 }
 
-/* Get route id */
+// Initialize database connection
+initializeDb();
+
+// Close database connections on server shutdown
+process.on("SIGINT", () => {
+  if (db) closeDb(db);
+  if (reportsDb) reportsDb.close();
+  process.exit();
+});
+
 app.get('/api/routeid/:route_short_name', async (req, res) => {
   try {
     const { route_short_name } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
+    const route = await getRoutes({ route_short_name });
 
-    const route = getRoutes({  // Uses node-gtfs
-      route_short_name: route_short_name
-    });
+    if (!route || route.length === 0) {
+      return res.status(404).json({ error: `No route found for ${route_short_name}` });
+    }
 
-    res.send(route[0].route_id);
-    closeDb(db);
-    console.log("Sent route id");
+    res.json({ route_id: route[0].route_id });
   } catch (error) {
-    console.error('Error fetching route id:', error);
-    res.status(500).json({ error: 'Failed to fetch route id' });
+    console.error("Error fetching route ID:", error);
+    res.status(500).json({ error: "Failed to fetch route ID" });
   }
 });
 
-/* Get the route geoJSON shape */
 app.get('/api/route/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
+    const shapesGeojson = await getShapesAsGeoJSON({ route_id, direction_id: Number(direction_id) });
 
-    const shapesGeojson = getShapesAsGeoJSON({ 
-      route_id: route_id,
-      direction_id: Number(direction_id)
-    });
+    if (!shapesGeojson || !shapesGeojson.features || shapesGeojson.features.length === 0) {
+      return res.status(404).json({ error: `No route found for ${route_id}, direction ${direction_id}` });
+    }
 
     res.json(shapesGeojson);
-    closeDb(db); 
-    console.log("Sent route");
   } catch (error) {
-    console.error('Error fetching route:', error);
-    res.status(500).json({ error: 'Failed to fetch route' });
+    console.error("Error fetching route:", error);
+    res.status(500).json({ error: "Failed to fetch route" });
   }
 });
 
-/* Get stops of route */
 app.get('/api/stops/:route_id/:direction_id', async (req, res) => {
   try {
     const { route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
+    const trips = await getTrips({ route_id, direction_id });
 
-    const trips = getTrips({
-      route_id: route_id,
-      direction_id: direction_id
-    })
-    
-    const shapesGeoJson = getStops({ trip_id: trips[0].trip_id });
-    
-    res.json(shapesGeoJson);
-    closeDb(db);
-    console.log("sent stops")
+    if (!trips || trips.length === 0) {
+      return res.status(404).json({ error: `No trips found for ${route_id}, direction ${direction_id}` });
+    }
+
+    const stops = await getStops({ trip_id: trips[0].trip_id });
+
+    if (!stops || stops.length === 0) {
+      return res.status(404).json({ error: `No stops found for trip_id: ${trips[0].trip_id}` });
+    }
+
+    res.json(stops);
   } catch (error) {
-    console.error('Error fetching stops:', error);
-    res.status(500).json({ error: 'Failed to fetch stops' });
+    console.error("Error fetching stops:", error);
+    res.status(500).json({ error: "Failed to fetch stops" });
   }
 });
 
-/* Get scheduled stop times for the trips of a specified route as well as realtime stop updates
-   and user reports */
 app.get('/api/stoptimes/:stop_id/:route_id/:direction_id', async (req, res) => {
   try {
     const { stop_id, route_id, direction_id } = req.params;
-    const config = await loadConfig();
-    const db = openDb(config);
+    const trips = await getTrips({ route_id, direction_id });
 
-    const trips = getTrips({ // Find all the trips of specific route
-      route_id: route_id,
-      direction_id: direction_id
-    });
-
-    const now = new Date();
-
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const formattedDate = Number(`${year}${month}${day}`);
-
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes() - 30).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const formattedTime = `${hours}:${minutes}:${seconds}`;
-    
-    let stopTimes = [];
-    let stopTimeUpdates = [];
-    let vehiclePositions = [];
-    for (let i = 0; i < trips.length; i++) {
-      let stopTime = getStoptimes({ // Get the stop times that haven't already arrived
-        stop_id: stop_id,
-        trip_id: trips[i].trip_id,
-        date: formattedDate,
-        start_time: formattedTime,
-      });
-      
-      if (stopTime.length > 0) { // Push to array of stop times if there is not empty
-        stopTimes.push(stopTime[0]);
-      }
-
-      let stopTimeUpdate = getStopTimeUpdates({ // Realtime stop time updates
-        stop_id: stop_id,
-        trip_id: trips[i].trip_id,
-      });
-
-      if (stopTimeUpdate.length > 0) {
-        stopTimeUpdates.push(stopTimeUpdate[0]);
-      }
-
-      let vehiclePostion = getVehiclePositions({ // Realtime vehicle position
-        trip_id: trips[i].trip_id,
-      });
-
-      if (vehiclePostion.length > 0) {
-        vehiclePositions.push(vehiclePostion[0]);
-      }
-
+    if (!trips || trips.length === 0) {
+      return res.status(404).json({ error: `No trips found for ${route_id}, direction ${direction_id}` });
     }
 
-    const trip_ids = stopTimes.map(stopTime => stopTime.trip_id); // Gather all the trip ids of available stop times
-    const placeholders = trip_ids.map(() => "?").join(", "); // Put them in readable format for sqlite
-    let userReports = [];
-    const reportsDb = new sqlite3.Database("user-reports.sqlite");
-    reportsDb.all(`SELECT * FROM reports WHERE trip_id IN (${placeholders}) ORDER BY timestamp DESC`, trip_ids, (err, rows) => { // Gather all user reports available for trip ids
-      if (err) return res.status(500).json({ error: err.message });
-      userReports = rows;
-      res.json({ stopTimes, stopTimeUpdates, userReports, vehiclePositions });
-    });
+    const now = new Date();
+    const formattedDate = Number(
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    );
+    const formattedTime = new Date(now.getTime() - 30 * 60 * 1000).toTimeString().slice(0, 8); // Subtract 30 minutes
 
-    closeDb(db);
-    console.log("sent stop times")
+    let stopTimes = [];
+    let stopTimeUpdates = [];
+
+    for (const trip of trips) {
+      const stopTime = await getStoptimes({ stop_id, trip_id: trip.trip_id, date: formattedDate, start_time: formattedTime });
+      if (stopTime.length > 0) stopTimes.push(stopTime[0]);
+
+      const stopTimeUpdate = await getStopTimeUpdates({ stop_id, trip_id: trip.trip_id });
+      if (stopTimeUpdate.length > 0) stopTimeUpdates.push(stopTimeUpdate[0]);
+    }
+
+    const trip_ids = stopTimes.map(stopTime => stopTime.trip_id);
+    const placeholders = trip_ids.map(() => "?").join(", ");
+    
+    let userReports = [];
+    if (trip_ids.length > 0) {
+      reportsDb.all(
+        `SELECT * FROM reports WHERE trip_id IN (${placeholders}) ORDER BY timestamp DESC`, 
+        trip_ids, 
+        (err, rows) => {
+          if (err) {
+            console.error("Error fetching user reports:", err);
+            return res.status(500).json({ error: "Failed to fetch user reports" });
+          }
+          userReports = rows;
+          res.json({ stopTimes, stopTimeUpdates, userReports });
+        }
+      );
+    } else {
+      res.json({ stopTimes, stopTimeUpdates, userReports });
+    }
   } catch (error) {
-    console.error('Error fetching stop times:', error);
-    res.status(500).json({ error: 'Failed to fetch stop times' });
+    console.error("Error fetching stop times:", error);
+    res.status(500).json({ error: "Failed to fetch stop times" });
   }
 });
 
-/* Submit report to user report database */
-app.post("/api/report", express.json(), (req, res) => {
-  const { trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description } = req.body;
-  const reportsDb = new sqlite3.Database("user-reports.sqlite");
+app.post("/api/report", async (req, res) => {
+  try {
+    const { trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description } = req.body;
 
-  reportsDb.run(
+    reportsDb.run(
       "INSERT INTO reports (trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [trip_id, stop_id, stop_sequence, status, delayHours, delayMinutes, delaySeconds, description],
       function (err) {
-          if (err) return res.status(500).json({ error: err.message });
-          res.status(201).json({ message: "Report added", reportId: this.lastID });
+        if (err) {
+          console.error("Error submitting report:", err);
+          return res.status(500).json({ error: "Failed to submit report" });
+        }
+        res.status(201).json({ message: "Report added", reportId: this.lastID });
       }
-  );
+    );
+  } catch (error) {
+    console.error("Error submitting report:", error);
+    res.status(500).json({ error: "Failed to submit report" });
+  }
 });
 
-/* Start server */
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

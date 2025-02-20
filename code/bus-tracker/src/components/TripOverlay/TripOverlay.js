@@ -1,14 +1,11 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { Marker } from 'react-leaflet';
-import L from 'leaflet';
-
 import "./TripOverlay.css";
 
 
 /* Trip Overlay handles shows trips connected to stop and user reports connected to trips,
    also handles the submissions of new user reports */
-const TripOverlay = ({ stopTimes, userReports, vehiclePositions, setShowTripOverlay, setSelectedVehicle }) => {
+const TripOverlay = ({ stopTimes, userReports, setShowTripOverlay }) => {
   const [selectedStopTime, setSelectedStopTime] = useState(null);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
@@ -33,7 +30,7 @@ const TripOverlay = ({ stopTimes, userReports, vehiclePositions, setShowTripOver
     let secondsDifference = Math.floor((timeDifferenceMs % (1000 * 60)) / 1000);
     
     try {
-      const response = await fetch("https://live-bus-tracker.onrender.com//api/report", {
+      const response = await fetch("http://localhost:5000/api/report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,26 +62,6 @@ const TripOverlay = ({ stopTimes, userReports, vehiclePositions, setShowTripOver
   /* Do not return anything if stop times are unavailable */
   if (!stopTimes || stopTimes.length === 0) return null;
 
-    /* Icon for buses */
-    const busIcon = new L.Icon({
-      iconUrl: require('./bus-icon.png'),
-      iconSize: [30, 30],
-      iconAnchor: [15, 30],
-      popupAnchor: [1, -30],
-    });
-
-  const handleStopTimeSelect = (stopTime) => {
-    setSelectedStopTime(stopTime);
-    const selectedVehicle = vehiclePositions.find(bus => bus.trip_id === stopTime.trip_id)
-    setSelectedVehicle(
-      <Marker
-            position={[selectedVehicle.latitude, selectedVehicle.longitude]}
-            icon={busIcon}
-          >
-      </Marker>
-    );
-  }
-
   /* Group reports by trip_id */
   const reportsByTripId = userReports.reduce((acc, report) => {
     if (!acc[report.trip_id]) {
@@ -115,7 +92,7 @@ const TripOverlay = ({ stopTimes, userReports, vehiclePositions, setShowTripOver
                 <div 
                   key={index} 
                   className="list-item" 
-                  onClick={() => handleStopTimeSelect(stopTime)} // Once stop time is selected, right side will show
+                  onClick={() => setSelectedStopTime(stopTime)} // Once stop time is selected, right side will show
                 >
                   <div className="stop-time">{stopTime.arrival_time}</div>
                   <div className={`latest-report visible`}>
@@ -130,7 +107,7 @@ const TripOverlay = ({ stopTimes, userReports, vehiclePositions, setShowTripOver
                 <div 
                   key={index} 
                   className="list-item" 
-                  onClick={() => handleStopTimeSelect(stopTime)}
+                  onClick={() => setSelectedStopTime(stopTime)}
                 >
                   <div className="stop-time">{stopTime.arrival_time}</div>
                   <div className={`latest-report`}>
